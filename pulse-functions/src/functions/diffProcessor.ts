@@ -1,6 +1,6 @@
 import { app, InvocationContext } from "@azure/functions";
 import { sitesContainer, snapshotsContainer, diffsContainer } from "../db";
-import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 
 export async function diffProcessor(queueItem: unknown, context: InvocationContext): Promise<void> {
     context.log('Storage queue function processed work item:', queueItem);
@@ -50,7 +50,7 @@ export async function diffProcessor(queueItem: unknown, context: InvocationConte
 
         if (hasChanges) {
             // Save new snapshot
-            const snapshotId = uuidv4();
+            const snapshotId = crypto.randomUUID();
             await snapshotsContainer.items.create({
                 id: snapshotId,
                 siteId,
@@ -60,7 +60,7 @@ export async function diffProcessor(queueItem: unknown, context: InvocationConte
 
             // Save diff record
             await diffsContainer.items.create({
-                id: uuidv4(),
+                id: crypto.randomUUID(),
                 siteId,
                 snapshotId,
                 summary: diffSummary,

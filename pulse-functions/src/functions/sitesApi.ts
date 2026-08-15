@@ -1,6 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { sitesContainer } from "../db";
-import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 
 export async function getSites(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     context.log(`Http function processed request for url "${request.url}"`);
@@ -28,7 +28,7 @@ export async function createSite(request: HttpRequest, context: InvocationContex
         }
 
         const newSite = {
-            id: uuidv4(),
+            id: crypto.randomUUID(),
             url: data.url,
             name: data.name,
             frequency: data.frequency || "15m",
