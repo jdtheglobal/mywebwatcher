@@ -1,12 +1,15 @@
 import React from 'react';
-import { Activity, Zap, Mail, BrainCircuit, Play, Pause, MoreHorizontal } from 'lucide-react';
+import { Activity, Zap, Mail, BrainCircuit, Play, Pause, MoreHorizontal, Loader2 } from 'lucide-react';
+import { useSites } from '../lib/api';
 
 export const Dashboard = () => {
+  const { data: sites, isLoading: isLoadingSites } = useSites();
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KpiCard title="Active Pulses" value="12" icon={<Activity className="text-blue-500" />} trend="+2 this week" />
+        <KpiCard title="Active Pulses" value={sites?.length || "0"} icon={<Activity className="text-blue-500" />} />
         <KpiCard title="Changes Detected" value="5" icon={<Zap className="text-amber-500" />} subtitle="Today" />
         <KpiCard title="Alerts Sent" value="8" icon={<Mail className="text-emerald-500" />} />
         <KpiCard title="AI Summaries" value="15" icon={<BrainCircuit className="text-purple-500" />} />
@@ -29,16 +32,20 @@ export const Dashboard = () => {
                     <th className="pb-3 font-medium">Name</th>
                     <th className="pb-3 font-medium">URL</th>
                     <th className="pb-3 font-medium">Status</th>
-                    <th className="pb-3 font-medium">Last Change</th>
                     <th className="pb-3 font-medium">Frequency</th>
                     <th className="pb-3 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
-                  <SiteRow name="Product Price Monitor" url="acmeinc.com" status="Monitoring" last="1 hour ago" freq="15 min" />
-                  <SiteRow name="News Update Monitor" url="appnews.com" status="Paused" last="2 hours ago" freq="15 min" />
-                  <SiteRow name="Job Listings Alert" url="examplejobs.com" status="Monitoring" last="8 hours ago" freq="Daily" />
-                  <SiteRow name="Stock Availability" url="supermart.com" status="Monitoring" last="1 day ago" freq="15 min" />
+                  {isLoadingSites ? (
+                    <tr><td colSpan={5} className="py-8 text-center text-slate-400"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></td></tr>
+                  ) : sites?.length > 0 ? (
+                    sites.map((site: any) => (
+                      <SiteRow key={site.id} name={site.name} url={site.url} status="Monitoring" freq={site.frequency} />
+                    ))
+                  ) : (
+                    <tr><td colSpan={5} className="py-8 text-center text-slate-400">No pulses found. Create your first one!</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
