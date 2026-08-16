@@ -36,9 +36,9 @@ export const Header = () => {
             </a>
           </div>
         ) : !isAuthLoading && !user ? (
-          <a href="/.auth/login/google" className="flex items-center text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors shadow-sm">
+          <a href="/.auth/login/github" className="flex items-center text-sm font-medium text-white bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg transition-colors">
             <LogIn className="w-4 h-4 mr-2" />
-            Login with Google
+            Login with GitHub
           </a>
         ) : (
           <div className="w-10 h-10 rounded-full bg-slate-200 animate-pulse"></div>
