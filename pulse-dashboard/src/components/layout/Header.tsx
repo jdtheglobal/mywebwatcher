@@ -34,7 +34,11 @@ export const Header = () => {
   };
 
   useEffect(() => {
-    if (!user && !isAuthLoading && window.google) {
+    if (user || isAuthLoading) return;
+
+    const initializeGsi = () => {
+      if (!window.google) return;
+      
       window.google.accounts.id.initialize({
         client_id: '124071957979-kdk3lfqvu0uuphusvre7sail7oefr694.apps.googleusercontent.com',
         callback: handleCredentialResponse
@@ -45,6 +49,23 @@ export const Header = () => {
           { theme: 'outline', size: 'large' }
         );
       }
+    };
+
+    if (window.google) {
+      initializeGsi();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = initializeGsi;
+      document.body.appendChild(script);
+      
+      return () => {
+        if (document.body.contains(script)) {
+          document.body.removeChild(script);
+        }
+      };
     }
   }, [user, isAuthLoading]);
 
