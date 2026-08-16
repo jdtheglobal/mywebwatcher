@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Bell, Settings, Search, LogIn, LogOut } from 'lucide-react';
+import { Bell, Settings, Search, LogOut } from 'lucide-react';
 import { usePulseStore } from '../../store/usePulseStore';
 
 declare global {
