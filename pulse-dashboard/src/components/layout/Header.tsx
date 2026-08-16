@@ -1,8 +1,49 @@
+import { useEffect, useRef } from 'react';
 import { Bell, Settings, Search, LogIn, LogOut } from 'lucide-react';
 import { usePulseStore } from '../../store/usePulseStore';
 
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+
 export const Header = () => {
-  const { user, isAuthLoading } = usePulseStore();
+  const { user, isAuthLoading, login, logout } = usePulseStore();
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+
+  const handleCredentialResponse = async (response: any) => {
+    try {
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        login(data.token, data.user);
+      } else {
+        console.error('Google auth failed on backend');
+      }
+    } catch (e) {
+      console.error('Network error during Google auth', e);
+    }
+  };
+
+  useEffect(() => {
+    if (!user && !isAuthLoading && window.google) {
+      window.google.accounts.id.initialize({
+        client_id: '124071957979-kdk3lfqvu0uuphusvre7sail7oefr694.apps.googleusercontent.com',
+        callback: handleCredentialResponse
+      });
+      if (googleButtonRef.current) {
+        window.google.accounts.id.renderButton(
+          googleButtonRef.current,
+          { theme: 'outline', size: 'large' }
+        );
+      }
+    }
+  }, [user, isAuthLoading]);
 
   return (
     <header className="h-20 bg-white/70 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-8 z-10 sticky top-0">
@@ -28,18 +69,19 @@ export const Header = () => {
         
         {!isAuthLoading && user ? (
           <div className="flex items-center space-x-3 cursor-pointer group">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-500 to-primary-300 flex items-center justify-center text-white font-bold text-sm shadow-md uppercase">
-              {user.userDetails.charAt(0)}
-            </div>
-            <a href="/.auth/logout" className="text-slate-500 hover:text-slate-800 hidden group-hover:flex items-center text-sm transition-all">
+            {user.picture ? (
+              <img src={user.picture} alt="Profile" className="w-10 h-10 rounded-full shadow-md" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-500 to-primary-300 flex items-center justify-center text-white font-bold text-sm shadow-md uppercase">
+                {user.name ? user.name.charAt(0) : user.email.charAt(0)}
+              </div>
+            )}
+            <button onClick={logout} className="text-slate-500 hover:text-slate-800 hidden group-hover:flex items-center text-sm transition-all">
               <LogOut className="w-4 h-4 mr-1" /> Logout
-            </a>
+            </button>
           </div>
         ) : !isAuthLoading && !user ? (
-          <a href="/.auth/login/github" className="flex items-center text-sm font-medium text-white bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg transition-colors">
-            <LogIn className="w-4 h-4 mr-2" />
-            Login with GitHub
-          </a>
+          <div ref={googleButtonRef}></div>
         ) : (
           <div className="w-10 h-10 rounded-full bg-slate-200 animate-pulse"></div>
         )}

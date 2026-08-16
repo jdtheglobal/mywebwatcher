@@ -1,0 +1,17 @@
+import { HttpRequest } from "@azure/functions";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret_do_not_use_in_prod";
+
+export function getUserIdFromRequest(request: HttpRequest): string | null {
+    const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
+    
+    const token = authHeader.split(" ")[1];
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+        return decoded.userId;
+    } catch (e) {
+        return null;
+    }
+}

@@ -4,11 +4,11 @@ import { Dashboard } from './pages/Dashboard';
 import { usePulseStore } from './store/usePulseStore';
 
 function App() {
-  const fetchUser = usePulseStore((state) => state.fetchUser);
+  const checkAuth = usePulseStore((state) => state.checkAuth);
 
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
+    checkAuth();
+  }, [checkAuth]);
 
   return (
     <Layout>

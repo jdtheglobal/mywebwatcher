@@ -1,34 +1,52 @@
 import { create } from 'zustand';
 
-interface User {
-  identityProvider: string;
+export interface User {
   userId: string;
-  userDetails: string;
-  userRoles: string[];
+  email: string;
+  name: string;
+  picture?: string;
 }
 
 interface PulseState {
   user: User | null;
+  token: string | null;
   isAuthLoading: boolean;
   selectedSiteId: string | null;
-  fetchUser: () => Promise<void>;
+  login: (token: string, user: User) => void;
+  logout: () => void;
+  checkAuth: () => void;
   setSelectedSiteId: (id: string | null) => void;
 }
 
 export const usePulseStore = create<PulseState>((set) => ({
   user: null,
+  token: null,
   isAuthLoading: true,
   selectedSiteId: null,
   
-  fetchUser: async () => {
-    try {
-      const response = await fetch('/.auth/me');
-      const payload = await response.json();
-      const { clientPrincipal } = payload;
-      set({ user: clientPrincipal, isAuthLoading: false });
-    } catch (error) {
-      console.error('Failed to fetch user:', error);
-      set({ user: null, isAuthLoading: false });
+  login: (token, user) => {
+    localStorage.setItem('pulseAuthToken', token);
+    localStorage.setItem('pulseUser', JSON.stringify(user));
+    set({ token, user, isAuthLoading: false });
+  },
+
+  logout: () => {
+    localStorage.removeItem('pulseAuthToken');
+    localStorage.removeItem('pulseUser');
+    set({ token: null, user: null, isAuthLoading: false });
+  },
+
+  checkAuth: () => {
+    const token = localStorage.getItem('pulseAuthToken');
+    const userStr = localStorage.getItem('pulseUser');
+    if (token && userStr) {
+      try {
+        set({ token, user: JSON.parse(userStr), isAuthLoading: false });
+      } catch (e) {
+        set({ token: null, user: null, isAuthLoading: false });
+      }
+    } else {
+      set({ token: null, user: null, isAuthLoading: false });
     }
   },
   

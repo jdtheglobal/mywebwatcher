@@ -1,9 +1,13 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { sitesContainer, diffsContainer } from "../db";
+import { getUserIdFromRequest } from "../utils/auth";
 
 export async function getSiteChanges(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     const siteId = request.params.id;
     context.log(`Fetching changes for site ${siteId}`);
+
+    const userId = getUserIdFromRequest(request);
+    if (!userId) return { status: 401, body: "Unauthorized" };
 
     try {
         const querySpec = {
@@ -25,6 +29,9 @@ export async function getSiteChanges(request: HttpRequest, context: InvocationCo
 export async function triggerSiteCheck(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     const siteId = request.params.id;
     context.log(`Manual trigger check for site ${siteId}`);
+
+    const userId = getUserIdFromRequest(request);
+    if (!userId) return { status: 401, body: "Unauthorized" };
 
     try {
         const { resource: site } = await sitesContainer.item(siteId, siteId).read();

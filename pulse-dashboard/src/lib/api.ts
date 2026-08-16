@@ -1,13 +1,21 @@
 import { useQuery } from '@tanstack/react-query';
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('pulseAuthToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+};
+
 export const fetchSites = async () => {
-  const res = await fetch('/api/sites');
+  const res = await fetch('/api/sites', { headers: getAuthHeaders() });
   if (!res.ok) throw new Error('Failed to fetch sites');
   return res.json();
 };
 
 export const fetchSiteChanges = async (siteId: string) => {
-  const res = await fetch(`/api/sites/${siteId}/changes`);
+  const res = await fetch(`/api/sites/${siteId}/changes`, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error('Failed to fetch changes');
   return res.json();
 };

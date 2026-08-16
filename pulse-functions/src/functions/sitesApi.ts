@@ -1,12 +1,20 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { sitesContainer } from "../db";
 import crypto from "crypto";
+import { getUserIdFromRequest } from "../utils/auth";
 
 export async function getSites(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     context.log(`Http function processed request for url "${request.url}"`);
+    
+    const userId = getUserIdFromRequest(request);
+    if (!userId) return { status: 401, body: "Unauthorized" };
 
     try {
-        const { resources: sites } = await sitesContainer.items.readAll().fetchAll();
+        const querySpec = {
+            query: "SELECT * from c WHERE c.userId = @userId",
+            parameters: [{ name: "@userId", value: userId }]
+        };
+        const { resources: sites } = await sitesContainer.items.query(querySpec).fetchAll();
         return {
             jsonBody: sites
         };
@@ -19,6 +27,9 @@ export async function getSites(request: HttpRequest, context: InvocationContext)
 export async function createSite(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     context.log(`Http function processed request for url "${request.url}"`);
 
+    const userId = getUserIdFromRequest(request);
+    if (!userId) return { status: 401, body: "Unauthorized" };
+
     try {
         const body = await request.text();
         const data = JSON.parse(body);
@@ -29,6 +40,7 @@ export async function createSite(request: HttpRequest, context: InvocationContex
 
         const newSite = {
             id: crypto.randomUUID(),
+            userId: userId,
             url: data.url,
             name: data.name,
             frequency: data.frequency || "15m",
