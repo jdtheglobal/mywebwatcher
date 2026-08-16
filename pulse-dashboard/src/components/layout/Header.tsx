@@ -23,9 +23,12 @@ export const Header = () => {
         const data = await res.json();
         login(data.token, data.user);
       } else {
-        console.error('Google auth failed on backend');
+        const text = await res.text();
+        alert('Google auth failed on backend: ' + text);
+        console.error('Google auth failed on backend', text);
       }
-    } catch (e) {
+    } catch (e: any) {
+      alert('Network error during Google auth: ' + e.message);
       console.error('Network error during Google auth', e);
     }
   };

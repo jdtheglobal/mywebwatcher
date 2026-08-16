@@ -1,13 +1,13 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { OAuth2Client } from "google-auth-library";
-import jwt from "jsonwebtoken";
-
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
-const JWT_SECRET = process.env.JWT_SECRET || "default_secret_do_not_use_in_prod";
-const client = new OAuth2Client(GOOGLE_CLIENT_ID);
+import * as jwt from "jsonwebtoken";
 
 export async function googleAuth(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     context.log(`Http function processed auth request`);
+
+    const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+    const JWT_SECRET = process.env.JWT_SECRET || "default_secret_do_not_use_in_prod";
+    const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
     try {
         const body = await request.text();
