@@ -5,7 +5,7 @@
   "engines": {
     "node": "20.x"
   },
-  "main": "dist/src/functions/*.js",
+  "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
