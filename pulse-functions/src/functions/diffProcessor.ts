@@ -1,11 +1,16 @@
 import { app, InvocationContext } from "@azure/functions";
 import { sitesContainer, snapshotsContainer, diffsContainer } from "../db";
 import crypto from "crypto";
+import { AzureOpenAI } from "openai";
 import { JSDOM } from "jsdom";
 import { diff_match_patch } from "diff-match-patch";
-import OpenAI from "openai";
 
-const openai = new OpenAI(); // Automatically uses process.env.OPENAI_API_KEY
+const openai = new AzureOpenAI({
+    endpoint: process.env.AZURE_OPENAI_ENDPOINT,
+    apiKey: process.env.AZURE_OPENAI_API_KEY,
+    apiVersion: "2024-06-01",
+    deployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-5-nano",
+});
 
 export async function diffProcessor(queueItem: unknown, context: InvocationContext): Promise<void> {
     context.log('Storage queue function processed work item:', queueItem);
@@ -68,7 +73,7 @@ export async function diffProcessor(queueItem: unknown, context: InvocationConte
 
                 try {
                     const completion = await openai.chat.completions.create({
-                        model: "gpt-4o-mini",
+                        model: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-5-nano",
                         messages: [
                             { role: "system", content: "You are an AI that summarizes website text changes briefly and clearly. Focus on the most important updates like price changes, new announcements, or out-of-stock statuses. Keep it under 2 sentences." },
                             { role: "user", content: diffPrompt }
