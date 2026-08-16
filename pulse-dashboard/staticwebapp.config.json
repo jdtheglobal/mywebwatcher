@@ -1,9 +1,4 @@
 {
-  "networking": {
-    "allowedIpRanges": [
-      "122.161.48.68/32"
-    ]
-  },
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": ["/api/*", "/.auth/*"]
