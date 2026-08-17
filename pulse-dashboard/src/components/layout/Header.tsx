@@ -21,6 +21,9 @@ export const Header = () => {
       });
       if (res.ok) {
         const data = await res.json();
+        if (window.google) {
+          window.google.accounts.id.cancel();
+        }
         login(data.token, data.user);
       } else {
         const text = await res.text();
