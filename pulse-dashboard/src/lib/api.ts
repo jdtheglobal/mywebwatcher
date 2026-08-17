@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('pulseAuthToken');
@@ -32,5 +32,25 @@ export const useSiteChanges = (siteId: string | null) => {
     queryKey: ['site-changes', siteId],
     queryFn: () => fetchSiteChanges(siteId as string),
     enabled: !!siteId,
+  });
+};
+
+export const createSite = async (data: { name: string; url: string; frequency: string }) => {
+  const res = await fetch('/api/sites', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to create site');
+  return res.json();
+};
+
+export const useCreateSite = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createSite,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sites'] });
+    },
   });
 };

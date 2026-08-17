@@ -1,12 +1,16 @@
-import React from 'react';
-import { Activity, Zap, Mail, BrainCircuit, Play, Pause, MoreHorizontal, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Activity, Zap, Mail, BrainCircuit, Play, Pause, MoreHorizontal, Loader2, Plus } from 'lucide-react';
 import { useSites } from '../lib/api';
+import { CreatePulseModal } from '../components/CreatePulseModal';
 
 export const Dashboard = () => {
   const { data: sites, isLoading: isLoadingSites } = useSites();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12">
+      <CreatePulseModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KpiCard title="Active Pulses" value={sites?.length || "0"} icon={<Activity className="text-blue-500" />} />
@@ -23,7 +27,12 @@ export const Dashboard = () => {
           <div className="card">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-slate-800">My Pulses</h2>
-              <button className="btn-secondary text-sm">Manage Pulses</button>
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="btn-primary flex items-center text-sm"
+              >
+                <Plus className="w-4 h-4 mr-1" /> Create Pulse
+              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
