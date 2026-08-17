@@ -1,11 +1,24 @@
 import React, { useState } from 'react';
 import { Activity, Zap, Mail, BrainCircuit, Play, Pause, Loader2, Plus } from 'lucide-react';
-import { useSites, useUpdateSiteStatus } from '../lib/api';
+import { useSites, useUpdateSiteStatus, useSiteChanges } from '../lib/api';
 import { CreatePulseModal } from '../components/CreatePulseModal';
 
 export const Dashboard = () => {
   const { data: sites, isLoading: isLoadingSites } = useSites();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  
+  // Set first site as selected by default once sites load
+  React.useEffect(() => {
+    if (sites && sites.length > 0 && !selectedSiteId) {
+      setSelectedSiteId(sites[0].id);
+    }
+  }, [sites, selectedSiteId]);
+
+  const { data: changes, isLoading: isLoadingChanges } = useSiteChanges(selectedSiteId);
+
+  const selectedSite = sites?.find((s: any) => s.id === selectedSiteId);
+  const latestChange = changes && changes.length > 0 ? changes[0] : null;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12">
@@ -51,7 +64,12 @@ export const Dashboard = () => {
                     <tr><td colSpan={6} className="py-8 text-center text-slate-400"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></td></tr>
                   ) : sites?.length > 0 ? (
                     sites.map((site: any) => (
-                      <SiteRow key={site.id} site={site} />
+                      <SiteRow 
+                        key={site.id} 
+                        site={site} 
+                        isSelected={site.id === selectedSiteId} 
+                        onClick={() => setSelectedSiteId(site.id)} 
+                      />
                     ))
                   ) : (
                     <tr><td colSpan={6} className="py-8 text-center text-slate-400">No pulses found. Create your first one!</td></tr>
@@ -63,54 +81,33 @@ export const Dashboard = () => {
 
           {/* Recent Changes Grid */}
           <div>
-            <h2 className="text-xl font-bold text-slate-800 mb-4">Recent Changes</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="card bg-gradient-to-br from-green-50 to-white border-green-100">
-                <h3 className="font-semibold text-slate-800 mb-2">Product Price Monitor</h3>
-                <p className="text-sm text-slate-600">Price dropped from <span className="line-through text-red-400">$120</span> to <span className="font-bold text-green-600">$99</span></p>
-              </div>
-              <div className="card">
-                <h3 className="font-semibold text-slate-800 mb-2">News Monitor</h3>
-                <p className="text-sm text-slate-600">New article published: <br/><span className="italic">"Tech Trends 2025"</span></p>
-              </div>
-              <div className="card">
-                <h3 className="font-semibold text-slate-800 mb-2">Stock Alert</h3>
-                <p className="text-sm text-slate-600">Item back in stock: <br/><span className="font-medium text-slate-700">Gaming Console</span></p>
-              </div>
-            </div>
-          </div>
-
-          {/* Snapshot History UI */}
-          <div className="card">
-             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-slate-800">Snapshot History</h2>
-              <span className="text-sm text-slate-500">29 April 2026 - 01 May 2026</span>
-             </div>
-             <div className="relative bg-slate-50 rounded-xl p-6 border border-slate-200 flex items-center justify-between">
-                <div className="w-5/12 bg-white p-4 rounded-lg shadow-sm border border-slate-100">
-                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Old Snapshot</h4>
-                  <div className="space-y-2 opacity-60">
-                    <div className="h-2 bg-slate-200 rounded w-3/4"></div>
-                    <div className="h-2 bg-slate-200 rounded w-1/2"></div>
-                    <p className="text-sm font-medium mt-4">Price: <span className="text-red-500">$120</span></p>
+            <h2 className="text-xl font-bold text-slate-800 mb-4">
+              History: {selectedSite?.name || 'Select a pulse'}
+            </h2>
+            
+            {isLoadingChanges ? (
+              <div className="py-12 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500" /></div>
+            ) : changes?.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {changes.map((change: any) => (
+                  <div key={change.id} className="card hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div className={`absolute top-0 left-0 w-1 h-full ${change.severity === 'High' ? 'bg-red-500' : change.severity === 'Medium' ? 'bg-amber-500' : 'bg-blue-500'}`}></div>
+                    <div className="pl-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold text-slate-800 text-sm">AI Summary</h3>
+                        <span className="text-xs text-slate-400">{new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(change.createdAt))}</span>
+                      </div>
+                      <p className="text-sm text-slate-600 line-clamp-3">{change.summary}</p>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-                  <button className="bg-primary-600 text-white px-6 py-2 rounded-full font-medium shadow-lg hover:bg-primary-700 hover:shadow-xl transition-all hover:scale-105 active:scale-95">
-                    View Diff
-                  </button>
-                </div>
-
-                <div className="w-5/12 bg-white p-4 rounded-lg shadow-sm border border-primary-100 ring-1 ring-primary-500/20">
-                  <h4 className="text-xs font-semibold text-primary-500 uppercase tracking-wider mb-2">New Snapshot</h4>
-                  <div className="space-y-2">
-                    <div className="h-2 bg-slate-200 rounded w-3/4"></div>
-                    <div className="h-2 bg-slate-200 rounded w-1/2"></div>
-                    <p className="text-sm font-medium mt-4">Price: <span className="text-green-500">$99</span></p>
-                  </div>
-                </div>
-             </div>
+                ))}
+              </div>
+            ) : (
+              <div className="card p-8 text-center text-slate-500 border-dashed">
+                <BrainCircuit className="w-8 h-8 mx-auto text-slate-300 mb-3" />
+                No changes detected yet for this pulse.
+              </div>
+            )}
           </div>
 
         </div>
@@ -121,20 +118,24 @@ export const Dashboard = () => {
           {/* AI Summary Card */}
           <div className="card relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
-            <h2 className="text-lg font-bold text-slate-800 mb-1">Change Summary</h2>
-            <p className="text-xs text-slate-500 mb-4">Product Price Monitor</p>
+            <h2 className="text-lg font-bold text-slate-800 mb-1">Latest Insight</h2>
+            <p className="text-xs text-slate-500 mb-4">{selectedSite?.name || 'Waiting for selection...'}</p>
             
-            <div className="bg-purple-50/50 rounded-lg p-4 mb-4 border border-purple-100/50">
-              <h4 className="text-sm font-semibold text-purple-900 mb-2 flex items-center">
-                <BrainCircuit className="w-4 h-4 mr-2" />
-                AI Analysis
-              </h4>
-              <p className="text-sm text-purple-800 leading-relaxed">
-                The price of the product has dropped from $120 to $99. Significant discount detected.
-              </p>
-            </div>
-            
-            <button className="w-full btn-primary bg-indigo-600 hover:bg-indigo-700">View Details</button>
+            {latestChange ? (
+              <div className="bg-purple-50/50 rounded-lg p-4 mb-4 border border-purple-100/50 animate-in fade-in zoom-in-95">
+                <h4 className="text-sm font-semibold text-purple-900 mb-2 flex items-center">
+                  <BrainCircuit className="w-4 h-4 mr-2" />
+                  AI Analysis
+                </h4>
+                <p className="text-sm text-purple-800 leading-relaxed">
+                  {latestChange.summary}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-slate-50 rounded-lg p-4 mb-4 text-sm text-slate-500 text-center">
+                Waiting for the next scrape to analyze changes.
+              </div>
+            )}
           </div>
 
           {/* Alerts Feed */}
@@ -171,11 +172,12 @@ const KpiCard = ({ title, value, icon, trend, subtitle }: any) => (
   </div>
 );
 
-const SiteRow = ({ site }: { site: any }) => {
+const SiteRow = ({ site, isSelected, onClick }: { site: any; isSelected: boolean; onClick: () => void }) => {
   const { mutate: updateStatus, isPending } = useUpdateSiteStatus();
   const isMonitoring = site.status === 'Monitoring';
 
-  const toggleStatus = () => {
+  const toggleStatus = (e: React.MouseEvent) => {
+    e.stopPropagation();
     updateStatus({ siteId: site.id, status: isMonitoring ? 'Suspended' : 'Monitoring' });
   };
 
@@ -185,8 +187,16 @@ const SiteRow = ({ site }: { site: any }) => {
   };
 
   return (
-    <tr className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
-      <td className="py-4 font-medium text-slate-800">{site.name}</td>
+    <tr 
+      onClick={onClick}
+      className={`border-b border-slate-100 last:border-0 cursor-pointer transition-colors ${isSelected ? 'bg-primary-50/50 hover:bg-primary-50' : 'hover:bg-slate-50/50'}`}
+    >
+      <td className="py-4 font-medium text-slate-800">
+        <div className="flex items-center">
+          {isSelected && <div className="w-1.5 h-6 bg-primary-500 rounded-full mr-2"></div>}
+          {site.name}
+        </div>
+      </td>
       <td className="py-4 text-slate-500 truncate max-w-[200px]"><a href={site.url} target="_blank" rel="noreferrer" className="hover:text-primary-600 hover:underline">{site.url}</a></td>
       <td className="py-4">
         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${isMonitoring ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'}`}>
