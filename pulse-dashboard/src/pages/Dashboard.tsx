@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Activity, Zap, Mail, BrainCircuit, Play, Pause, MoreHorizontal, Loader2, Plus } from 'lucide-react';
-import { useSites } from '../lib/api';
+import { Activity, Zap, Mail, BrainCircuit, Play, Pause, Loader2, Plus } from 'lucide-react';
+import { useSites, useUpdateSiteStatus } from '../lib/api';
 import { CreatePulseModal } from '../components/CreatePulseModal';
 
 export const Dashboard = () => {
@@ -41,19 +41,20 @@ export const Dashboard = () => {
                     <th className="pb-3 font-medium">Name</th>
                     <th className="pb-3 font-medium">URL</th>
                     <th className="pb-3 font-medium">Status</th>
-                    <th className="pb-3 font-medium">Frequency</th>
-                    <th className="pb-3 font-medium"></th>
+                    <th className="pb-3 font-medium">Created</th>
+                    <th className="pb-3 font-medium">Last Checked</th>
+                    <th className="pb-3 font-medium text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm">
                   {isLoadingSites ? (
-                    <tr><td colSpan={5} className="py-8 text-center text-slate-400"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></td></tr>
+                    <tr><td colSpan={6} className="py-8 text-center text-slate-400"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></td></tr>
                   ) : sites?.length > 0 ? (
                     sites.map((site: any) => (
-                      <SiteRow key={site.id} name={site.name} url={site.url} status="Monitoring" freq={site.frequency} />
+                      <SiteRow key={site.id} site={site} />
                     ))
                   ) : (
-                    <tr><td colSpan={5} className="py-8 text-center text-slate-400">No pulses found. Create your first one!</td></tr>
+                    <tr><td colSpan={6} className="py-8 text-center text-slate-400">No pulses found. Create your first one!</td></tr>
                   )}
                 </tbody>
               </table>
@@ -170,23 +171,39 @@ const KpiCard = ({ title, value, icon, trend, subtitle }: any) => (
   </div>
 );
 
-const SiteRow = ({ name, url, status, last, freq }: any) => {
-  const isMonitoring = status === 'Monitoring';
+const SiteRow = ({ site }: { site: any }) => {
+  const { mutate: updateStatus, isPending } = useUpdateSiteStatus();
+  const isMonitoring = site.status === 'Monitoring';
+
+  const toggleStatus = () => {
+    updateStatus({ siteId: site.id, status: isMonitoring ? 'Suspended' : 'Monitoring' });
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return 'Never';
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(dateStr));
+  };
+
   return (
     <tr className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
-      <td className="py-4 font-medium text-slate-800">{name}</td>
-      <td className="py-4 text-slate-500 truncate max-w-[150px]">{url}</td>
+      <td className="py-4 font-medium text-slate-800">{site.name}</td>
+      <td className="py-4 text-slate-500 truncate max-w-[200px]"><a href={site.url} target="_blank" rel="noreferrer" className="hover:text-primary-600 hover:underline">{site.url}</a></td>
       <td className="py-4">
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${isMonitoring ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-          {isMonitoring ? <Play className="w-3 h-3 mr-1" /> : <Pause className="w-3 h-3 mr-1" />}
-          {status}
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${isMonitoring ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'}`}>
+          {isMonitoring ? <Activity className="w-3 h-3 mr-1" /> : <Pause className="w-3 h-3 mr-1" />}
+          {site.status}
         </span>
       </td>
-      <td className="py-4 text-slate-600">{last}</td>
-      <td className="py-4 text-slate-600 flex items-center justify-between">
-        <span>Every {freq}</span>
-        <button className="text-slate-400 hover:text-primary-600 p-1 rounded hover:bg-slate-100 transition-colors">
-          <MoreHorizontal className="w-4 h-4" />
+      <td className="py-4 text-slate-500 text-xs">{formatDate(site.createdAt)}</td>
+      <td className="py-4 text-slate-500 text-xs">{formatDate(site.lastChecked)}</td>
+      <td className="py-4 text-right">
+        <button 
+          onClick={toggleStatus}
+          disabled={isPending}
+          className="text-slate-400 hover:text-primary-600 p-2 rounded-lg hover:bg-slate-100 transition-colors disabled:opacity-50"
+          title={isMonitoring ? "Suspend Pulse" : "Resume Pulse"}
+        >
+          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : isMonitoring ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
         </button>
       </td>
     </tr>

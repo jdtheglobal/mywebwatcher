@@ -61,6 +61,44 @@ export async function createSite(request: HttpRequest, context: InvocationContex
     }
 }
 
+export async function updateSiteStatus(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    context.log(`Http function processed request for url "${request.url}"`);
+
+    const userId = getUserIdFromRequest(request);
+    if (!userId) return { status: 401, body: "Unauthorized" };
+
+    const siteId = request.params.id;
+    if (!siteId) return { status: 400, body: "Missing site ID" };
+
+    try {
+        const body = await request.text();
+        const data = JSON.parse(body);
+
+        if (!data.status) {
+            return { status: 400, body: "Missing status" };
+        }
+
+        // Fetch the existing site
+        const { resource: site } = await sitesContainer.item(siteId, siteId).read();
+        
+        if (!site || site.userId !== userId) {
+            return { status: 404, body: "Site not found" };
+        }
+
+        // Update status
+        site.status = data.status;
+        await sitesContainer.item(siteId, siteId).replace(site);
+
+        return {
+            status: 200,
+            jsonBody: site
+        };
+    } catch (error: any) {
+        context.error(error);
+        return { status: 500, body: "Error updating site" };
+    }
+}
+
 app.http('getSites', {
     methods: ['GET'],
     authLevel: 'anonymous',
@@ -73,4 +111,11 @@ app.http('createSite', {
     authLevel: 'anonymous',
     route: 'sites',
     handler: createSite
+});
+
+app.http('updateSiteStatus', {
+    methods: ['PATCH'],
+    authLevel: 'anonymous',
+    route: 'sites/{id}/status',
+    handler: updateSiteStatus
 });

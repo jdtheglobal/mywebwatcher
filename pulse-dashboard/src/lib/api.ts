@@ -54,3 +54,23 @@ export const useCreateSite = () => {
     },
   });
 };
+
+export const updateSiteStatus = async ({ siteId, status }: { siteId: string; status: string }) => {
+  const res = await fetch(`/api/sites/${siteId}/status`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error('Failed to update site status');
+  return res.json();
+};
+
+export const useUpdateSiteStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateSiteStatus,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sites'] });
+    },
+  });
+};
