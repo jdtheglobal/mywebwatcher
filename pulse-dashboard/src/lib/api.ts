@@ -4,7 +4,7 @@ const getAuthHeaders = () => {
   const token = localStorage.getItem('pulseAuthToken');
   return {
     'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    ...(token ? { 'X-Pulse-Auth': `Bearer ${token}` } : {})
   };
 };
 

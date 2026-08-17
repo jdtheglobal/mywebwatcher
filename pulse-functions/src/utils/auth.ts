@@ -4,7 +4,7 @@ import * as jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET || "default_secret_do_not_use_in_prod";
 
 export function getUserIdFromRequest(request: HttpRequest): string | null {
-    const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
+    const authHeader = request.headers.get("x-pulse-auth") || request.headers.get("X-Pulse-Auth");
     if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
     
     const token = authHeader.split(" ")[1];
