@@ -1,40 +1,58 @@
-import { app, InvocationContext, Timer, output } from "@azure/functions";
+import { app, InvocationContext, HttpRequest, HttpResponseInit } from "@azure/functions";
 import { sitesContainer } from "../db";
+import { processSiteDiff } from "./diffProcessor";
+import { getUserIdFromRequest } from "../utils/auth";
 
-const queueOutput = output.storageQueue({
-    queueName: 'site-checks',
-    connection: 'AzureWebJobsStorage'
-});
+export async function triggerScrape(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    context.log('Manual scrape triggered via HTTP');
 
-export async function scheduledCheck(myTimer: Timer, context: InvocationContext): Promise<string[]> {
-    context.log('Scheduled check triggered');
-
-    const messages: string[] = [];
+    // Optional: Protect this endpoint so only the owner or an admin can trigger it manually.
+    // For a real production app with external CRON, you'd use a function key instead of user auth.
+    // Here we'll allow an authenticated user to trigger their own sites for demonstration.
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+        return { status: 401, body: "Unauthorized - Please login to trigger scrape" };
+    }
 
     try {
-        // Find sites that need to be checked (simplified: checking all active sites for now)
         const querySpec = {
-            query: "SELECT * from c WHERE c.status = 'Monitoring'"
+            query: "SELECT * from c WHERE c.status = 'Monitoring' AND c.userId = @userId",
+            parameters: [{ name: "@userId", value: userId }]
         };
         const { resources: sites } = await sitesContainer.items.query(querySpec).fetchAll();
 
+        context.log(`Found ${sites.length} sites to scrape for user ${userId}`);
+
+        const results = [];
         for (const site of sites) {
-            context.log(`Enqueueing check for site ${site.id} (${site.url})`);
-            messages.push(JSON.stringify({ siteId: site.id, url: site.url }));
+            context.log(`Scraping site ${site.id} (${site.url})`);
+            try {
+                // Call the engine directly instead of queuing
+                await processSiteDiff(site.id, site.url, context);
+                results.push({ siteId: site.id, url: site.url, status: "Success" });
+            } catch (err: any) {
+                context.error(`Failed to scrape ${site.url}`, err);
+                results.push({ siteId: site.id, url: site.url, status: "Failed", error: err.message });
+            }
         }
 
-    } catch (error: any) {
-        context.error('Error in scheduled check:', error);
-    }
+        return {
+            status: 200,
+            jsonBody: {
+                message: `Processed ${sites.length} pulses.`,
+                results
+            }
+        };
 
-    return messages;
+    } catch (error: any) {
+        context.error('Error in trigger scrape:', error);
+        return { status: 500, body: "Internal Server Error during scrape" };
+    }
 }
 
-app.timer('scheduledCheck', {
-    schedule: '0 */15 * * * *',
-    handler: async (myTimer, context) => {
-        const messages = await scheduledCheck(myTimer, context);
-        return messages;
-    },
-    return: queueOutput
+app.http('triggerScrape', {
+    methods: ['POST'],
+    authLevel: 'anonymous', // We handle auth manually in the function
+    route: 'trigger-scrape',
+    handler: triggerScrape
 });

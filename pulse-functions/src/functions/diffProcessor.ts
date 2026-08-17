@@ -12,20 +12,9 @@ const openai = new AzureOpenAI({
     deployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || "gpt-5-nano",
 });
 
-export async function diffProcessor(queueItem: unknown, context: InvocationContext): Promise<void> {
-    context.log('Storage queue function processed work item:', queueItem);
-    
-    let message;
-    if (typeof queueItem === 'string') {
-        message = JSON.parse(queueItem);
-    } else {
-        message = queueItem as any;
-    }
-
-    const { siteId, url } = message;
-
+export async function processSiteDiff(siteId: string, url: string, context: InvocationContext): Promise<void> {
     if (!siteId || !url) {
-        context.warn('Invalid queue item format');
+        context.warn('Invalid site data provided to processSiteDiff');
         return;
     }
 
@@ -130,9 +119,3 @@ export async function diffProcessor(queueItem: unknown, context: InvocationConte
         context.error(`Error processing diff for site ${siteId}:`, error);
     }
 }
-
-app.storageQueue('diffProcessor', {
-    queueName: 'site-checks',
-    connection: 'AzureWebJobsStorage',
-    handler: diffProcessor
-});
